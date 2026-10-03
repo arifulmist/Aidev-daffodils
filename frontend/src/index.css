@@ -1,0 +1,172 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+  
+  code, pre, .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+/* Light & Dark Theme Base Styles */
+html.light, body.light {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+html.dark, body.dark {
+  background-color: #030712;
+  color: #f3f4f6;
+}
+
+/* Light Mode Overrides for Slate Components */
+.light .bg-slate-950 {
+  background-color: #f8fafc !important;
+}
+
+.light .bg-slate-900 {
+  background-color: #ffffff !important;
+}
+
+.light .bg-slate-900\/80,
+.light .bg-slate-900\/90,
+.light .bg-slate-900\/95,
+.light .bg-slate-900\/60 {
+  background-color: #ffffff !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.08), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+}
+
+.light .bg-slate-950\/60,
+.light .bg-slate-950\/70,
+.light .bg-slate-950\/80 {
+  background-color: #f1f5f9 !important;
+}
+
+.light .border-slate-800,
+.light .border-slate-800\/80,
+.light .border-slate-800\/60,
+.light .border-slate-900 {
+  border-color: #cbd5e1 !important;
+}
+
+.light .border-slate-700 {
+  border-color: #94a3b8 !important;
+}
+
+/* High-Contrast Legible Text in Light Mode */
+.light .text-white {
+  color: #0f172a !important;
+}
+
+.light .text-slate-100 {
+  color: #0f172a !important;
+}
+
+.light .text-slate-200 {
+  color: #1e293b !important;
+}
+
+.light .text-slate-300 {
+  color: #1e293b !important;
+}
+
+.light .text-slate-400 {
+  color: #334155 !important; /* Crisp dark slate for high visibility */
+}
+
+.light .text-slate-500 {
+  color: #475569 !important; /* High contrast subtitle gray */
+}
+
+.light .text-slate-600 {
+  color: #64748b !important;
+}
+
+/* High Contrast Accent Colors in Light Mode */
+.light .text-amber-400,
+.light .text-amber-300 {
+  color: #b45309 !important; /* Amber-700: deep, bold, perfectly visible on white */
+}
+
+.light .text-emerald-400,
+.light .text-emerald-300 {
+  color: #047857 !important; /* Emerald-700 */
+}
+
+.light .text-rose-400,
+.light .text-rose-300 {
+  color: #b91c1c !important; /* Rose-700 */
+}
+
+.light .text-blue-400,
+.light .text-blue-300 {
+  color: #1d4ed8 !important; /* Blue-700 */
+}
+
+.light .text-purple-400,
+.light .text-purple-300 {
+  color: #6b21a8 !important; /* Purple-800 */
+}
+
+.light .text-orange-400,
+.light .text-orange-300 {
+  color: #c2410c !important; /* Orange-700 */
+}
+
+/* Card gradient overrides for clean light backgrounds */
+.light .from-slate-900 {
+  --tw-gradient-from: #ffffff !important;
+}
+
+.light .via-slate-900 {
+  --tw-gradient-stops: #ffffff, #ffffff !important;
+}
+
+.light .to-amber-950\/40,
+.light .to-amber-950\/30 {
+  --tw-gradient-to: #fffbeb !important;
+}
+
+.light .to-emerald-950\/40 {
+  --tw-gradient-to: #ecfdf5 !important;
+}
+
+.light .divide-slate-800\/60 > :not([hidden]) ~ :not([hidden]),
+.light .divide-slate-800 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #e2e8f0 !important;
+}
+
+.light .hover\:bg-slate-800\/40:hover,
+.light .hover\:bg-slate-800\/60:hover,
+.light .hover\:bg-slate-800:hover {
+  background-color: #f1f5f9 !important;
+}
+
+.light input, .light textarea, .light select {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+.light input::placeholder, .light textarea::placeholder {
+  color: #64748b !important;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 3px;
+}
+.light ::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+}
