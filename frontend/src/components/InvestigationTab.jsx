@@ -744,9 +744,17 @@ export default function InvestigationTab({
                       Evidence-Grounded AI Analyst Recommendation
                     </h3>
                   </div>
-                  <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-mono font-bold">
-                    Target Team: {result.llm_report.assigned_team}
-                  </span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {result.llm_report?.engine && (
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-mono font-semibold flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                        {result.llm_report.engine}
+                      </span>
+                    )}
+                    <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-mono font-bold">
+                      Target Team: {result.llm_report.assigned_team}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="space-y-3 text-xs leading-relaxed">

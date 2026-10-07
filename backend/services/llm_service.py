@@ -25,8 +25,20 @@ class LLMAnalystService:
         """
         Takes purely structured evidence and generates an audit report.
         """
-        # 1. Check if byNara API key is configured (Priority)
-        if settings.BYNARA_API_KEY:
+        # 1. Check if OpenRouter API is configured (Primary High-Speed LLM)
+        if getattr(settings, "OPENROUTER_API_KEY", None):
+            try:
+                report = self._call_openrouter_api(
+                    complaint_text, transaction_data, timeline,
+                    ml_prediction, rule_evaluation, anomaly_data, similar_cases
+                )
+                if report:
+                    return report
+            except Exception as e:
+                print(f"[LLM] OpenRouter call error, falling back: {e}")
+
+        # 2. Check if byNara API key is configured
+        if getattr(settings, "BYNARA_API_KEY", None):
             try:
                 report = self._call_bynara_api(
                     complaint_text, transaction_data, timeline,
@@ -37,8 +49,8 @@ class LLMAnalystService:
             except Exception as e:
                 print(f"[LLM] byNara call error, falling back: {e}")
 
-        # 2. Check if live Gemini API key is available
-        if settings.GEMINI_API_KEY:
+        # 3. Check if live Gemini API key is available
+        if getattr(settings, "GEMINI_API_KEY", None):
             try:
                 report = self._call_gemini_api(
                     complaint_text, transaction_data, timeline,
@@ -49,8 +61,8 @@ class LLMAnalystService:
             except Exception as e:
                 print(f"[LLM] Gemini call failed, falling back to grounded synthesizer: {e}")
 
-        # 3. Check if OpenAI API key is available
-        if settings.OPENAI_API_KEY:
+        # 4. Check if OpenAI API key is available
+        if getattr(settings, "OPENAI_API_KEY", None):
             try:
                 report = self._call_openai_api(
                     complaint_text, transaction_data, timeline,
@@ -61,22 +73,24 @@ class LLMAnalystService:
             except Exception as e:
                 print(f"[LLM] OpenAI call failed, falling back to grounded synthesizer: {e}")
 
-        # 4. Grounded Deterministic Intelligence Engine (Offline / Hackathon Reliable)
+        # 5. Grounded Deterministic Intelligence Engine (Instant Offline / Hackathon Reliable)
         return self._generate_grounded_fallback(
             complaint_text, transaction_data, timeline,
             ml_prediction, rule_evaluation, anomaly_data, similar_cases
         )
 
-    def _call_bynara_api(self, complaint, tx, timeline, ml, rule, anomaly, similar) -> Optional[Dict[str, Any]]:
+    def _call_openrouter_api(self, complaint, tx, timeline, ml, rule, anomaly, similar) -> Optional[Dict[str, Any]]:
         import re
-        url = f"{settings.BYNARA_BASE_URL}/chat/completions"
+        url = f"{settings.OPENROUTER_BASE_URL}/chat/completions"
         headers = {
-            "Authorization": f"Bearer {settings.BYNARA_API_KEY}",
-            "Content-Type": "application/json"
+            "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://upay-ops-intelligence.vercel.app",
+            "X-Title": "upay Ops Intelligence"
         }
-        prompt = self._build_prompt(complaint, tx, timeline, ml, rule, anomaly, similar)
+        prompt = self._build_prompt(complaint, tx, timeline, ml, rule, anomaly, similar[:2])
         payload = {
-            "model": settings.BYNARA_MODEL,
+            "model": settings.OPENROUTER_MODEL,
             "messages": [
                 {
                     "role": "system",
@@ -88,7 +102,43 @@ class LLMAnalystService:
             "temperature": 0.1
         }
 
-        with httpx.Client(timeout=45.0) as client:
+        with httpx.Client(timeout=12.0) as client:
+            resp = client.post(url, headers=headers, json=payload)
+            if resp.status_code == 200:
+                data = resp.json()
+                raw_text = data["choices"][0]["message"]["content"].strip()
+                if raw_text.startswith("```"):
+                    raw_text = re.sub(r"^```(?:json)?\s*", "", raw_text)
+                    raw_text = re.sub(r"\s*```$", "", raw_text)
+                parsed = json.loads(raw_text)
+                parsed["engine"] = f"OpenRouter ({settings.OPENROUTER_MODEL})"
+                return parsed
+            else:
+                print(f"[LLM] OpenRouter error {resp.status_code}: {resp.text}")
+        return None
+
+    def _call_bynara_api(self, complaint, tx, timeline, ml, rule, anomaly, similar) -> Optional[Dict[str, Any]]:
+        import re
+        url = f"{settings.BYNARA_BASE_URL}/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {settings.BYNARA_API_KEY}",
+            "Content-Type": "application/json"
+        }
+        prompt = self._build_prompt(complaint, tx, timeline, ml, rule, anomaly, similar[:2])
+        payload = {
+            "model": settings.BYNARA_MODEL,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are a senior MFS dispute investigation analyst for upay. Analyze the verified evidence and return pure JSON only matching the schema exactly. Do not wrap in markdown backticks."
+                },
+                {"role": "user", "content": prompt}
+            ],
+            "max_tokens": 500,
+            "temperature": 0.1
+        }
+
+        with httpx.Client(timeout=5.0) as client:
             resp = client.post(url, headers=headers, json=payload)
             if resp.status_code == 200:
                 data = resp.json()
