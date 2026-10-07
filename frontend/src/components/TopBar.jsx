@@ -13,7 +13,8 @@ import {
   CheckCircle2,
   X,
   ExternalLink,
-  Layers
+  Layers,
+  Radio
 } from 'lucide-react';
 
 export default function TopBar({
@@ -21,7 +22,8 @@ export default function TopBar({
   onQuickSearch,
   theme,
   setTheme,
-  onNavigateToAlert
+  onNavigateToAlert,
+  onOpenStream
 }) {
   const [searchInput, setSearchInput] = useState('');
   const [timeStr, setTimeStr] = useState('');
@@ -168,6 +170,16 @@ export default function TopBar({
             <Clock className="w-3.5 h-3.5 text-amber-400" />
             <span>{timeStr || '14:32:08 BST'}</span>
           </div>
+
+          {/* Live Telemetry Stream Adapter Button */}
+          <button
+            onClick={() => onOpenStream && onOpenStream()}
+            title="Open Live Event Stream Adapter (Kafka/Webhook Ingestion)"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-950/70 border border-slate-800 hover:border-amber-500/50 text-slate-300 hover:text-amber-400 text-xs font-mono transition-all shadow-sm cursor-pointer"
+          >
+            <Radio className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+            <span className="hidden md:inline">Stream Adapter</span>
+          </button>
 
           {/* Interactive Alerts Bell with Dropdown Menu */}
           <div className="relative" ref={dropdownRef}>

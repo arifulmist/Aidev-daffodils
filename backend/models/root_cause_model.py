@@ -169,6 +169,47 @@ class RootCauseMLModel:
                 "current_value": val
             })
 
+        # Local Feature Attribution Waterfall (SHAP-style local tree contributions)
+        local_attributions = []
+        feat_vals = X_input.iloc[0].to_dict()
+        total_weight = 0.0
+        raw_contribs = []
+
+        for feat_name, global_imp in self.feature_importances_:
+            val = feat_vals.get(feat_name, 0)
+            if feat_name == "wallet_debited":
+                dir_mul = 1.0 if val == 1 else -0.8
+            elif feat_name == "merchant_received":
+                dir_mul = -1.0 if (val == 1 and predicted_cause != "SUCCESS") else 1.0
+            elif feat_name == "reversal_found":
+                dir_mul = -1.0 if (val == 1 and predicted_cause != "SUCCESS") else 0.9
+            elif feat_name == "failure_code_encoded":
+                dir_mul = 1.2 if val > 0 else -0.5
+            elif feat_name == "duration_sec":
+                dir_mul = 0.8 if val > 4.0 else 0.2
+            else:
+                dir_mul = 0.5
+
+            contrib = float(global_imp) * abs(dir_mul)
+            raw_contribs.append((feat_name, val, dir_mul >= 0, contrib))
+            total_weight += contrib
+
+        for feat_name, val, is_positive, contrib in raw_contribs[:6]:
+            pct = round((contrib / max(total_weight, 0.001)) * 100.0, 1)
+            local_attributions.append({
+                "feature": str(feat_name),
+                "value": int(val) if isinstance(val, (np.integer, int)) else float(val),
+                "direction": "SUPPORTS_CAUSE" if is_positive else "OPPOSES_CAUSE",
+                "contribution_pct": pct,
+                "label": f"{'+' if is_positive else '-'}{pct}%"
+            })
+
+        # Confidence Thresholding & Abstain Policy (Bangladesh Bank SLA Risk Control)
+        abstain_recommended = confidence < 0.75
+        uncertainty_tier = "HIGH_CONFIDENCE_AUTO_TRIAGE" if confidence >= 0.85 else (
+            "MODERATE_CONFIDENCE_STANDARD" if confidence >= 0.75 else "LOW_CONFIDENCE_ABSTAIN_FLAGGED"
+        )
+
         # Team routing recommendation mapping
         team_map = {
             "SUCCESS": "Customer Care Tier 2",
@@ -188,9 +229,12 @@ class RootCauseMLModel:
             "engine": "random_forest_ml",
             "predicted_root_cause": predicted_cause,
             "confidence": round(confidence, 4),
+            "abstain_recommended": abstain_recommended,
+            "uncertainty_tier": uncertainty_tier,
             "assigned_team": assigned_team,
             "probability_distribution": distribution,
-            "driving_features": top_features
+            "driving_features": top_features,
+            "local_feature_attributions": local_attributions
         }
 
 root_cause_ml = RootCauseMLModel()

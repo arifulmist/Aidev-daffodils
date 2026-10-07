@@ -11,6 +11,7 @@ from backend.api.cases import router as cases_router
 from backend.api.metrics import router as metrics_router
 from backend.api.demo import router as demo_router
 from backend.api.alerts import router as alerts_router
+from backend.api.stream import router as stream_router
 
 # Initialize database schema
 init_db()
@@ -38,6 +39,7 @@ app.include_router(cases_router)
 app.include_router(metrics_router)
 app.include_router(demo_router)
 app.include_router(alerts_router)
+app.include_router(stream_router)
 
 @app.get("/api/health")
 def health_check():

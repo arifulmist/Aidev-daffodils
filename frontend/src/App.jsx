@@ -5,12 +5,14 @@ import DashboardTab from './components/DashboardTab';
 import InvestigationTab from './components/InvestigationTab';
 import CasesTab from './components/CasesTab';
 import MetricsTab from './components/MetricsTab';
+import StreamSimulatorModal from './components/StreamSimulatorModal';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedTxId, setSelectedTxId] = useState('TX10082');
   const [selectedComplaintText, setSelectedComplaintText] = useState('');
   const [selectedComplaintId, setSelectedComplaintId] = useState('');
+  const [isStreamOpen, setIsStreamOpen] = useState(false);
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('upay_theme') || 'dark';
   });
@@ -79,6 +81,7 @@ export default function App() {
           theme={theme}
           setTheme={setTheme}
           onNavigateToAlert={handleNavigateToAlert}
+          onOpenStream={() => setIsStreamOpen(true)}
         />
 
         {/* Main Content with generous padding and clean spacing - no overlap */}
@@ -116,6 +119,13 @@ export default function App() {
           </div>
         </footer>
       </div>
+
+      {/* Live Event Stream Ingestion Adapter Modal */}
+      <StreamSimulatorModal
+        isOpen={isStreamOpen}
+        onClose={() => setIsStreamOpen(false)}
+        onSelectTransaction={(txId) => handleSelectTransaction(txId)}
+      />
     </div>
   );
 }

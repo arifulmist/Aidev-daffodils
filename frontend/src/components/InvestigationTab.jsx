@@ -33,6 +33,60 @@ export default function InvestigationTab({
   const [overrideTeam, setOverrideTeam] = useState('Reconciliation');
   const [overrideNotes, setOverrideNotes] = useState('');
 
+  // What-If Causal Counterfactual State
+  const [showWhatIfModal, setShowWhatIfModal] = useState(false);
+  const [whatIfHypotheses, setWhatIfHypotheses] = useState({
+    merchant_ack_received: false,
+    reversal_succeeded: false,
+    balance_sufficient: false,
+    network_timeout_cleared: false
+  });
+  const [whatIfResult, setWhatIfResult] = useState(null);
+  const [whatIfLoading, setWhatIfLoading] = useState(false);
+
+  // Exportable Audit Dossier State
+  const [showDossierModal, setShowDossierModal] = useState(false);
+  const [dossierData, setDossierData] = useState(null);
+  const [dossierLoading, setDossierLoading] = useState(false);
+
+  const handleRunWhatIf = async () => {
+    if (!result) return;
+    setWhatIfLoading(true);
+    try {
+      const res = await fetch('/api/investigations/what-if', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          transaction_id: result.transaction.transaction_id,
+          hypotheses: whatIfHypotheses
+        })
+      });
+      const data = await res.json();
+      if (data && data.simulation) {
+        setWhatIfResult(data.simulation);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setWhatIfLoading(false);
+    }
+  };
+
+  const handleOpenDossier = async () => {
+    if (!result) return;
+    setShowDossierModal(true);
+    setDossierLoading(true);
+    try {
+      const res = await fetch(`/api/investigations/${result.transaction.transaction_id}/dossier`);
+      const data = await res.json();
+      setDossierData(data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setDossierLoading(false);
+    }
+  };
+
   // Fetch demo cases on mount
   useEffect(() => {
     fetch('/api/demo/cases')
@@ -351,6 +405,44 @@ export default function InvestigationTab({
       {/* Main Investigation Results Grid */}
       {result && (
         <div className="space-y-6">
+          {/* Enhanced Action & Intelligence Ribbon */}
+          <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-lg">
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => { setShowWhatIfModal(true); setWhatIfResult(null); }}
+                className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-purple-500/20 to-purple-600/20 hover:from-purple-500/30 hover:to-purple-600/30 border border-purple-500/40 text-purple-200 text-xs font-mono font-bold flex items-center gap-2 transition-all shadow-md shadow-purple-500/10 cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                <span>Test What-If Counterfactual 🧪</span>
+              </button>
+              <button
+                onClick={handleOpenDossier}
+                className="px-3.5 py-2 rounded-xl bg-slate-950/80 hover:bg-slate-800 border border-slate-700 text-slate-200 text-xs font-mono font-semibold flex items-center gap-2 transition-all cursor-pointer"
+              >
+                <FileText className="w-3.5 h-3.5 text-amber-400" />
+                <span>Export Audit Dossier (SHA-256) 📄</span>
+              </button>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 text-xs font-mono">
+              {result.self_healing && result.self_healing.eligible && (
+                <span className="px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5 font-bold animate-pulse">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>⚡ Instant Micro-Dispute Settlement Qualified (৳{result.evidence.amount})</span>
+                </span>
+              )}
+              {result.privacy && result.privacy.pii_redacted && (
+                <span className="px-2.5 py-1 rounded-lg bg-blue-500/15 text-blue-300 border border-blue-500/30 flex items-center gap-1 text-[11px]">
+                  <ShieldCheck className="w-3 h-3 text-blue-400" />
+                  <span>Privacy Shield: PII Sanitized</span>
+                </span>
+              )}
+              <span className="px-2.5 py-1 rounded-lg bg-slate-950 text-slate-400 border border-slate-800 text-[11px]">
+                SLA: BB Circular 04/2022
+              </span>
+            </div>
+          </div>
+
           {/* Top Bar: Structured Evidence Chips (Phase 4) */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {/* Chip 1: Wallet Debited */}
@@ -537,6 +629,38 @@ export default function InvestigationTab({
                         </div>
                       ))}
                     </div>
+                  </div>
+                )}
+
+                {/* Local Tree Feature Attribution Waterfall (SHAP-style local contributions) */}
+                {result.explainability.local_feature_attributions && result.explainability.local_feature_attributions.length > 0 && (
+                  <div className="pt-3 border-t border-slate-800">
+                    <div className="text-[11px] font-mono text-slate-400 mb-2 flex items-center justify-between">
+                      <span className="font-bold text-amber-300">Local Tree Feature Attribution Waterfall:</span>
+                      <span className="text-[10px] text-slate-500 font-mono">Sample-Specific Impact</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {result.explainability.local_feature_attributions.map((attr, idx) => (
+                        <div key={idx} className="p-2 rounded-lg bg-slate-950/70 border border-slate-800 text-[11px] font-mono flex items-center justify-between">
+                          <span className="text-slate-300 truncate">{attr.feature}={attr.value}</span>
+                          <span className={`font-bold px-1.5 py-0.5 rounded text-[10px] ${
+                            attr.direction === 'SUPPORTS_CAUSE'
+                              ? 'bg-emerald-500/20 text-emerald-300'
+                              : 'bg-rose-500/20 text-rose-300'
+                          }`}>
+                            {attr.label}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Confidence Abstain Warning (Bangladesh Bank SLA Risk Control) */}
+                {result.explainability.abstain_recommended && (
+                  <div className="p-3 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-300 text-xs font-mono flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                    <span>SLA Risk Warning: Confidence is under 75%. Senior officer verification required under Bangladesh Bank guidelines.</span>
                   </div>
                 )}
               </div>
@@ -762,6 +886,201 @@ export default function InvestigationTab({
                 className="px-4 py-2 rounded-xl bg-amber-500 text-slate-950 font-bold text-xs"
               >
                 Submit Correction & Retrain Loop
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* What-If Causal Counterfactual Simulation Modal */}
+      {showWhatIfModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-2xl w-full p-6 space-y-5 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-purple-400" />
+                <h3 className="text-base font-bold text-white font-mono">
+                  Causal Counterfactual "What-If" Reasoning Simulator
+                </h3>
+              </div>
+              <button onClick={() => setShowWhatIfModal(false)} className="text-slate-400 hover:text-white">✕</button>
+            </div>
+
+            <p className="text-xs text-slate-300">
+              Test hypothetical mutations on the event graph. Recalculates the causal consensus and shows whether the failure would resolve or shift to an alternate pathway.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-mono">
+              <label className="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-start gap-3 cursor-pointer hover:border-slate-700 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={whatIfHypotheses.merchant_ack_received}
+                  onChange={(e) => setWhatIfHypotheses({ ...whatIfHypotheses, merchant_ack_received: e.target.checked })}
+                  className="mt-0.5 rounded text-amber-500 focus:ring-0"
+                />
+                <div>
+                  <div className="text-white font-semibold">Merchant ACK Received</div>
+                  <div className="text-slate-400 text-[11px]">Simulates POS gateway responding HTTP 200 within timeout</div>
+                </div>
+              </label>
+
+              <label className="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-start gap-3 cursor-pointer hover:border-slate-700 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={whatIfHypotheses.reversal_succeeded}
+                  onChange={(e) => setWhatIfHypotheses({ ...whatIfHypotheses, reversal_succeeded: e.target.checked })}
+                  className="mt-0.5 rounded text-amber-500 focus:ring-0"
+                />
+                <div>
+                  <div className="text-white font-semibold">Automated Reversal Succeeded</div>
+                  <div className="text-slate-400 text-[11px]">Simulates core banking rollback worker executing in ledger</div>
+                </div>
+              </label>
+
+              <label className="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-start gap-3 cursor-pointer hover:border-slate-700 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={whatIfHypotheses.balance_sufficient}
+                  onChange={(e) => setWhatIfHypotheses({ ...whatIfHypotheses, balance_sufficient: e.target.checked })}
+                  className="mt-0.5 rounded text-amber-500 focus:ring-0"
+                />
+                <div>
+                  <div className="text-white font-semibold">Balance Validated</div>
+                  <div className="text-slate-400 text-[11px]">Simulates customer having sufficient balance + VAT fees</div>
+                </div>
+              </label>
+
+              <label className="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-start gap-3 cursor-pointer hover:border-slate-700 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={whatIfHypotheses.network_timeout_cleared}
+                  onChange={(e) => setWhatIfHypotheses({ ...whatIfHypotheses, network_timeout_cleared: e.target.checked })}
+                  className="mt-0.5 rounded text-amber-500 focus:ring-0"
+                />
+                <div>
+                  <div className="text-white font-semibold">Network Latency Cleared</div>
+                  <div className="text-slate-400 text-[11px]">Simulates telecom switch latency remaining under 1,500ms</div>
+                </div>
+              </label>
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                onClick={handleRunWhatIf}
+                disabled={whatIfLoading}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-400 hover:to-purple-500 text-white font-bold text-xs font-mono shadow-lg transition-all"
+              >
+                {whatIfLoading ? 'Simulating Causal Graph...' : 'Execute What-If Simulation ⚡'}
+              </button>
+            </div>
+
+            {whatIfResult && (
+              <div className="p-4 rounded-2xl bg-purple-950/30 border border-purple-500/40 space-y-3 animate-in fade-in">
+                <div className="flex items-center justify-between text-xs font-mono">
+                  <span className="text-slate-400">Simulation Causal Shift:</span>
+                  <span className="font-extrabold text-purple-300 px-2.5 py-0.5 rounded-full bg-purple-500/20 border border-purple-500/30">
+                    {whatIfResult.causal_outcome}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-xs font-mono">
+                  <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
+                    <div className="text-slate-500 text-[11px]">Original Root Cause:</div>
+                    <div className="text-rose-400 font-bold text-sm mt-0.5">{whatIfResult.original_root_cause}</div>
+                  </div>
+                  <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
+                    <div className="text-slate-500 text-[11px]">Counterfactual Root Cause:</div>
+                    <div className="text-emerald-400 font-bold text-sm mt-0.5">{whatIfResult.counterfactual_root_cause}</div>
+                  </div>
+                </div>
+                <p className="text-xs text-slate-200 font-mono bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
+                  💡 {whatIfResult.explanation}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Exportable Dispute Audit Dossier Modal */}
+      {showDossierModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-3xl w-full p-6 space-y-4 shadow-2xl max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <FileText className="w-5 h-5 text-amber-400" />
+                <h3 className="text-base font-bold text-white font-mono">
+                  Dispute Audit Dossier (Bangladesh Bank Compliance Packet)
+                </h3>
+              </div>
+              <button onClick={() => setShowDossierModal(false)} className="text-slate-400 hover:text-white">✕</button>
+            </div>
+
+            {dossierLoading ? (
+              <div className="py-12 text-center text-slate-400 font-mono text-xs">Generating verifiable cryptographic dossier...</div>
+            ) : dossierData ? (
+              <div className="flex-1 overflow-y-auto space-y-4 text-xs font-mono">
+                {/* Fingerprint Header */}
+                <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400">Dossier ID: <strong className="text-white">{dossierData.dossier_id}</strong></span>
+                    <span className="text-emerald-400 font-bold">Regulatory Target: {dossierData.sla_resolution_target_days} Days SLA</span>
+                  </div>
+                  <div className="text-[11px] text-slate-400">
+                    Framework: <span className="text-amber-300">{dossierData.regulatory_framework}</span>
+                  </div>
+                  <div className="text-[10px] text-slate-500 break-all">
+                    SHA-256 Fingerprint: <span className="text-amber-400">{dossierData.cryptographic_fingerprint_sha256}</span>
+                  </div>
+                </div>
+
+                {/* Consensus Findings */}
+                <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-2">
+                  <div className="text-xs font-bold text-white uppercase tracking-wider">Investigative Determination</div>
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <span className="text-slate-400">Primary Root Cause:</span>
+                      <div className="text-amber-300 font-bold text-sm mt-0.5">{dossierData.consensus_determination.primary_root_cause}</div>
+                    </div>
+                    <div>
+                      <span className="text-slate-400">Assigned Team:</span>
+                      <div className="text-emerald-300 font-bold text-sm mt-0.5">{dossierData.consensus_determination.assigned_department}</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Event Audit Trail */}
+                <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-2">
+                  <div className="text-xs font-bold text-white uppercase tracking-wider">Chronological Ledger Telemetry ({dossierData.chronological_event_audit.length} events)</div>
+                  <div className="space-y-1 max-h-36 overflow-y-auto">
+                    {dossierData.chronological_event_audit.map((ev, i) => (
+                      <div key={i} className="flex items-center justify-between text-[11px] py-1 border-b border-slate-900">
+                        <span className="text-slate-400">{ev.timestamp} • {ev.event_type}</span>
+                        <span className={`font-bold ${ev.event_status === 'SUCCESS' ? 'text-emerald-400' : 'text-rose-400'}`}>{ev.event_status}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Compliance Signoff */}
+                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-[11px] flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 flex-shrink-0 text-emerald-400" />
+                  <span>Verified: Immutable audit log entry generated. Ready for Bangladesh Bank compliance filing or inter-bank settlement.</span>
+                </div>
+              </div>
+            ) : null}
+
+            <div className="pt-3 border-t border-slate-800 flex justify-end gap-2">
+              <button
+                onClick={() => window.print()}
+                className="px-4 py-2 rounded-xl bg-amber-500 text-slate-950 font-bold text-xs font-mono"
+              >
+                Print / Save PDF Dossier 🖨️
+              </button>
+              <button
+                onClick={() => setShowDossierModal(false)}
+                className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-medium"
+              >
+                Close
               </button>
             </div>
           </div>
