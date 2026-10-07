@@ -68,10 +68,30 @@ def create_case(req: CaseCreateRequest, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_case)
 
+    # Sync to Supabase PostgreSQL in Cloud
+    supabase_synced = False
+    try:
+        from backend.services.supabase_service import supabase_service
+        sync_res = supabase_service.sync_case({
+            "case_id": db_case.case_id,
+            "complaint_id": db_case.complaint_id,
+            "transaction_id": db_case.transaction_id,
+            "root_cause": db_case.root_cause,
+            "confidence": db_case.confidence,
+            "priority": db_case.priority,
+            "assigned_team": db_case.assigned_team,
+            "recommendation": db_case.recommendation,
+            "status": db_case.status
+        })
+        supabase_synced = sync_res.get("synced", False)
+    except Exception as e:
+        print(f"[Supabase Sync] Warning: {e}")
+
     return {
         "status": "success",
         "case_id": db_case.case_id,
         "assigned_team": db_case.assigned_team,
+        "supabase_synced": supabase_synced,
         "message": f"Case {case_id} logged and routed to {db_case.assigned_team}."
     }
 
